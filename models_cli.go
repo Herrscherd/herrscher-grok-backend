@@ -36,11 +36,12 @@ const (
 
 type cappedBuffer struct {
 	data     bytes.Buffer
+	limit    int
 	exceeded bool
 }
 
 func (b *cappedBuffer) Write(data []byte) (int, error) {
-	accepted := min(len(data), max(boundedOutputMax-b.data.Len(), 0))
+	accepted := min(len(data), max(b.limit-b.data.Len(), 0))
 	if accepted < len(data) {
 		b.exceeded = true
 	}
@@ -56,7 +57,11 @@ type boundedOutput struct {
 }
 
 func runBounded(ctx context.Context, argv []string, dir string, env []string) (*boundedOutput, error) {
-	output := &boundedOutput{}
+	return runBoundedWithin(ctx, argv, dir, env, boundedOutputMax)
+}
+
+func runBoundedWithin(ctx context.Context, argv []string, dir string, env []string, limit int) (*boundedOutput, error) {
+	output := &boundedOutput{stdout: cappedBuffer{limit: limit}, stderr: cappedBuffer{limit: boundedOutputMax}}
 	cmd := turnCommand(ctx, childSpec{argv: argv, dir: dir, env: env, stderr: &output.stderr})
 	cmd.Stdout = &output.stdout
 	cmd.WaitDelay = boundedWaitDelay

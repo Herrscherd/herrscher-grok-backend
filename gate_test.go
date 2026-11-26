@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	contracts "github.com/Herrscherd/herrscher-contracts"
@@ -35,6 +36,7 @@ printf '{"type":"end","stopReason":"end_turn","sessionId":"s"}\n'`)
 func gateEnv(t *testing.T, mode string) {
 	t.Helper()
 	t.Setenv(contracts.EnvApprovalsMode, mode)
+	t.Setenv(contracts.EnvApprovalsSession, "gated")
 	t.Setenv(contracts.EnvApprovalsBin, gatedBin)
 }
 
@@ -62,24 +64,38 @@ func TestAGatedTurnRunsWhenGrokLoadsTheHook(t *testing.T) {
 }
 
 func TestAGatedTurnIsRefusedWhenTheHookIsNotLoaded(t *testing.T) {
-	tests := map[string]string{
-		"no hook":       `[]`,
-		"disabled hook": projectHook(t, gatedCommand, true),
-		"another bin":   projectHook(t, "'/usr/bin/herrscher' approve hook", false),
-		"unreadable":    `not json`,
+	tests := map[string]struct {
+		hooks  string
+		reason GateReason
+	}{
+		"no hook":       {hooks: `[]`, reason: GateHookMissing},
+		"disabled hook": {hooks: projectHook(t, gatedCommand, true), reason: GateHookDisabled},
+		"another bin":   {hooks: projectHook(t, "'/usr/bin/herrscher' approve hook", false), reason: GateHookOtherBinary},
+		"unreadable":    {hooks: `not json`, reason: GateInspectUnreadable},
 	}
-	for name, hooks := range tests {
+	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			gateEnv(t, "strict")
-			fake := gatedStub(t, hooks)
+			fake := gatedStub(t, test.hooks)
 			turn := respond(t, newStubBackend(t, Config{Cmd: fake.stub}), "hi")
-			if !errors.Is(turn.err, ErrGateNotLoaded) {
-				t.Fatalf("err = %v, want ErrGateNotLoaded", turn.err)
+			refused, isRefused := errors.AsType[*GateError](turn.err)
+			if !isRefused || refused.Reason != test.reason || !errors.Is(turn.err, ErrGateNotLoaded) {
+				t.Fatalf("err = %v, want a gate refusal for %s", turn.err, test.reason)
 			}
 			if fileExists(fake.marker) {
 				t.Fatal("the turn ran without its approval hook")
 			}
 		})
+	}
+}
+
+func TestTheGateReadsAnInspectListingPastTheProbeBound(t *testing.T) {
+	gateEnv(t, "ask")
+	filler := `{"event":"session_start","target":"` + strings.Repeat("x", boundedOutputMax) + `","source":{"type":"user"}}`
+	hooks := projectHook(t, gatedCommand, false)
+	fake := gatedStub(t, "["+filler+","+hooks[1:])
+	if turn := respond(t, newStubBackend(t, Config{Cmd: fake.stub}), "hi"); turn.err != nil || !fileExists(fake.marker) {
+		t.Fatalf("err = %v, want a listing over %d bytes read whole", turn.err, boundedOutputMax)
 	}
 }
 

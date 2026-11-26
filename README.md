@@ -64,14 +64,20 @@ run. It also means a Grok session trusts its worktree the way a Claude session
 does: hooks and MCP servers the repository itself ships under `.grok/` load too.
 
 Before every turn of a session that asks for approvals (`HERRSCHER_APPROVALS_MODE`
-set and not `bypass`, with `HERRSCHER_APPROVALS_BIN`), the backend runs
-`grok inspect --json` in the working directory with the turn's environment, and
-runs the turn only when that listing holds a project `pre_tool_use` hook, matching
-`*`, not disabled, whose command is the herrscher approval command of that
-binary. Otherwise the turn is refused with `ErrGateNotLoaded` before `grok`
-starts: a user who disabled the hook in `/hooks`, a policy that loads managed
-hooks only, or a working directory Grok does not count as a project would
-otherwise let every tool call run unasked.
+set and not `bypass`, with `HERRSCHER_SESSION` and `HERRSCHER_APPROVALS_BIN`, read
+through `contracts.ApprovalsFromEnv`), the backend runs `grok inspect --json` in the
+working directory with the turn's environment, reading at most 8 MiB of it, and runs
+the turn only when that listing holds a project `pre_tool_use` hook, matching `*`,
+not disabled, whose command is the herrscher approval command of that binary.
+Otherwise the turn is refused before `grok` starts, with a `*GateError` that matches
+`ErrGateNotLoaded` and names its `GateReason` and a remedy: the hook missing, the
+hook disabled (a user who turned it off in `/hooks`), the hook calling another
+herrscher binary, or an inspect that failed, printed more than 8 MiB, or printed a
+listing the gate cannot read. Whatever keeps Grok from loading project hooks in the
+working directory, such as a managed policy or a folder it does not trust, leaves
+the hook out of the listing and reads as a missing hook. Any of them would
+otherwise let every tool call run unasked. The check costs one more `grok`
+process per gated turn, about 0.2 seconds.
 
 `--always-approve` keeps a headless run from refusing every tool call it cannot
 ask about. The approval policy is enforced by the `PreToolUse` hook, which runs
