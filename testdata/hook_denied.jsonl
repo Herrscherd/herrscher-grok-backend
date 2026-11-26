@@ -1,0 +1,38 @@
+{"type":"available_commands","tools":["run_terminal_command","read_file","search_replace"],"commands":["compact"]}
+{"type":"available_commands","tools":["run_terminal_command","read_file","search_replace"],"commands":["compact"]}
+{"type":"available_commands","tools":["run_terminal_command","read_file","search_replace"],"commands":["compact"]}
+{"type":"usage","usage":{"input_tokens":19521,"output_tokens":59,"cache_read_input_tokens":7040,"cache_creation_input_tokens":0,"reasoning_tokens":38},"signature":"sig"}
+{"type":"tool_call","toolCallId":"call-0640f963-85cd-4c81-b908-e16b5cf6e169-0","title":"run_terminal_command","kind":"execute","status":"pending","toolName":"run_terminal_command","rawInput":{"command":"echo hi","description":"Print hi to stdout"},"content":[],"locations":[]}
+{"type":"tool_call_update","toolCallId":"call-0640f963-85cd-4c81-b908-e16b5cf6e169-0","status":"failed","content":[{"type":"content","content":{"type":"text","text":"Hook denied: blocked by herrscher test"}}],"rawOutput":null,"locations":[]}
+{"type":"thought","data":"The command was blocked"}
+{"type":"thought","data":" by a hook."}
+{"type":"text","data":"The"}
+{"type":"text","data":" command"}
+{"type":"text","data":" did"}
+{"type":"text","data":" not"}
+{"type":"text","data":" run"}
+{"type":"text","data":"."}
+{"type":"text","data":" The"}
+{"type":"text","data":" shell"}
+{"type":"text","data":" hook"}
+{"type":"text","data":" blocked"}
+{"type":"text","data":" it"}
+{"type":"text","data":" with"}
+{"type":"text","data":" `"}
+{"type":"text","data":"blocked"}
+{"type":"text","data":" by"}
+{"type":"text","data":" herr"}
+{"type":"text","data":"scher"}
+{"type":"text","data":" test"}
+{"type":"text","data":"`,"}
+{"type":"text","data":" so"}
+{"type":"text","data":" there"}
+{"type":"text","data":" is"}
+{"type":"text","data":" no"}
+{"type":"text","data":" output"}
+{"type":"text","data":" to"}
+{"type":"text","data":" report"}
+{"type":"text","data":"."}
+{"type":"available_commands","tools":["run_terminal_command","read_file","search_replace"],"commands":["compact"]}
+{"type":"usage","usage":{"input_tokens":140,"output_tokens":102,"cache_read_input_tokens":26496,"cache_creation_input_tokens":0,"reasoning_tokens":75},"signature":"sig"}
+{"type":"end","stopReason":"end_turn","sessionId":"01a21751-4223-76f2-88d9-a85b836d3fa7","requestId":"469745c9-b79c-4455-b286-c5c7d278891f","cwd":"/work","usage":{"input_tokens":19661,"cache_read_input_tokens":33536,"cache_creation_input_tokens":0,"output_tokens":161,"reasoning_tokens":113,"total_tokens":53358},"num_turns":2,"total_cost_usd":0.057056,"total_cost_usd_ticks":570560000,"modelUsage":{"grok-4.7-build":{"inputTokens":19661,"outputTokens":161,"cacheReadInputTokens":33536,"cacheCreationInputTokens":0,"modelCalls":2,"costUSD":0.057056}}}

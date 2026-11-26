@@ -1,0 +1,32 @@
+{"type":"available_commands","tools":["run_terminal_command","read_file","search_replace"],"commands":["compact"]}
+{"type":"available_commands","tools":["run_terminal_command","read_file","search_replace"],"commands":["compact"]}
+{"type":"text","data":"I'll"}
+{"type":"text","data":" read"}
+{"type":"text","data":" that"}
+{"type":"text","data":" file"}
+{"type":"text","data":" and"}
+{"type":"text","data":" stop"}
+{"type":"text","data":"."}
+{"type":"available_commands","tools":["run_terminal_command","read_file","search_replace"],"commands":["compact"]}
+{"type":"usage","usage":{"input_tokens":19519,"output_tokens":49,"cache_read_input_tokens":7040,"cache_creation_input_tokens":0,"reasoning_tokens":24},"signature":"sig"}
+{"type":"tool_call","toolCallId":"call-aab27ee9-c6c5-42e0-babd-5bde2486f3ff-0","title":"read_file","kind":"read","status":"pending","toolName":"read_file","rawInput":{"target_file":"/nonexistent/zzz.txt"},"content":[],"locations":[]}
+{"type":"tool_call_update","toolCallId":"call-aab27ee9-c6c5-42e0-babd-5bde2486f3ff-0","status":null,"content":[],"rawOutput":null,"locations":[{"path":"/nonexistent/zzz.txt"}]}
+{"type":"tool_call_update","toolCallId":"call-aab27ee9-c6c5-42e0-babd-5bde2486f3ff-0","status":"failed","content":[{"type":"content","content":{"type":"text","text":"Error: /nonexistent/zzz.txt does not exist.\nNote: your current working directory is /work"}}],"rawOutput":{"type":"ReadFile","FileNotFound":"Error: /nonexistent/zzz.txt does not exist.\nNote: your current working directory is /work"},"locations":[]}
+{"type":"text","data":"`"}
+{"type":"text","data":"/"}
+{"type":"text","data":"non"}
+{"type":"text","data":"existent"}
+{"type":"text","data":"/"}
+{"type":"text","data":"zzz"}
+{"type":"text","data":".txt"}
+{"type":"text","data":"`"}
+{"type":"text","data":" does"}
+{"type":"text","data":" not"}
+{"type":"text","data":" exist"}
+{"type":"text","data":"."}
+{"type":"text","data":" Stopping"}
+{"type":"text","data":" here"}
+{"type":"text","data":"."}
+{"type":"available_commands","tools":["run_terminal_command","read_file","search_replace"],"commands":["compact"]}
+{"type":"usage","usage":{"input_tokens":194,"output_tokens":39,"cache_read_input_tokens":26496,"cache_creation_input_tokens":0,"reasoning_tokens":24},"signature":"sig"}
+{"type":"end","stopReason":"end_turn","sessionId":"01a21750-2e52-7081-8809-03284716724f","requestId":"ccd39df4-9998-40c1-8733-8e9c40547742","cwd":"/work","usage":{"input_tokens":19713,"cache_read_input_tokens":33536,"cache_creation_input_tokens":0,"output_tokens":88,"reasoning_tokens":48,"total_tokens":53337},"num_turns":2,"total_cost_usd":0.056722,"total_cost_usd_ticks":567220000,"modelUsage":{"grok-4.7-build":{"inputTokens":19713,"outputTokens":88,"cacheReadInputTokens":33536,"cacheCreationInputTokens":0,"modelCalls":2,"costUSD":0.056722}}}
