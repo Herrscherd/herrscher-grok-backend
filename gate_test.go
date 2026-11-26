@@ -89,6 +89,19 @@ func TestAGatedTurnIsRefusedWhenTheHookIsNotLoaded(t *testing.T) {
 	}
 }
 
+func TestAGatedTurnIsRefusedUnderAManagedHooksOnlyPolicy(t *testing.T) {
+	gateEnv(t, "ask")
+	hooks := projectHook(t, gatedCommand, false)
+	fake := gatedStub(t, hooks+`,"permissions":{"enforced":[{"setting":"nonManagedHooks","source":"/etc/grok/requirements.toml"}]}`)
+	turn := respond(t, newStubBackend(t, Config{Cmd: fake.stub}), "hi")
+	if refused, isRefused := errors.AsType[*GateError](turn.err); !isRefused || refused.Reason != GateManagedHooksOnly {
+		t.Fatalf("err = %v, want a refusal: grok lists the hook but skips it at dispatch", turn.err)
+	}
+	if fileExists(fake.marker) {
+		t.Fatal("the turn ran while grok skips the approval hook")
+	}
+}
+
 func TestTheGateReadsAnInspectListingPastTheProbeBound(t *testing.T) {
 	gateEnv(t, "ask")
 	filler := `{"event":"session_start","target":"` + strings.Repeat("x", boundedOutputMax) + `","source":{"type":"user"}}`

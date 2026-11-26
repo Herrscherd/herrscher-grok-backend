@@ -16,6 +16,7 @@ const (
 	inspectMatchAll    = "*"
 	approveHookCommand = " approve hook"
 	maxInspectOutput   = 8 << 20
+	managedHooksOnly   = "nonManagedHooks"
 )
 
 // ErrGateNotLoaded reports a turn refused because the session asks for
@@ -35,6 +36,7 @@ const (
 	GateHookMissing
 	GateHookDisabled
 	GateHookOtherBinary
+	GateManagedHooksOnly
 )
 
 func (r GateReason) String() string {
@@ -51,6 +53,8 @@ func (r GateReason) String() string {
 		return "the hook is listed but disabled"
 	case GateHookOtherBinary:
 		return "the hook calls another herrscher binary"
+	case GateManagedHooksOnly:
+		return "a policy lets only managed hooks run"
 	}
 	return "unknown reason"
 }
@@ -61,6 +65,8 @@ func (r GateReason) remedy() string {
 		return "enable the herrscher hook again with /hooks in grok"
 	case GateHookOtherBinary, GateHookMissing:
 		return "recreate the session so herrscher writes its hook again"
+	case GateManagedHooksOnly:
+		return "add the herrscher hook to the managed policy, or run the session without approvals"
 	case GateInspectFailed, GateInspectTooLarge, GateInspectUnreadable:
 		return "check grok inspect --json in the worktree, then upgrade the grok backend if its format changed"
 	}
@@ -114,6 +120,24 @@ type inspectedHook struct {
 	} `json:"source"`
 }
 
+type inspectListing struct {
+	Hooks       []inspectedHook `json:"hooks"`
+	Permissions struct {
+		Enforced []struct {
+			Setting string `json:"setting"`
+		} `json:"enforced"`
+	} `json:"permissions"`
+}
+
+func (l inspectListing) enforcesManagedHooksOnly() bool {
+	for _, pin := range l.Permissions.Enforced {
+		if pin.Setting == managedHooksOnly {
+			return true
+		}
+	}
+	return false
+}
+
 func (h inspectedHook) isProjectGate() bool {
 	return h.Event == inspectEvent && h.Source.Type == inspectProject && h.Matcher == inspectMatchAll && strings.HasSuffix(h.Target, approveHookCommand)
 }
@@ -126,11 +150,12 @@ func (g approvalGate) check(ctx context.Context, base []string, spec childSpec) 
 	if output.stdout.exceeded {
 		return &GateError{Reason: GateInspectTooLarge, Cause: &OutputTooLargeError{Limit: maxInspectOutput}}
 	}
-	var inspected struct {
-		Hooks []inspectedHook `json:"hooks"`
-	}
+	var inspected inspectListing
 	if err := json.Unmarshal(output.stdout.data.Bytes(), &inspected); err != nil {
 		return &GateError{Reason: GateInspectUnreadable, Cause: err}
+	}
+	if inspected.enforcesManagedHooksOnly() {
+		return &GateError{Reason: GateManagedHooksOnly}
 	}
 	return g.verdict(inspected.Hooks)
 }

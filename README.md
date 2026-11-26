@@ -73,10 +73,12 @@ Otherwise the turn is refused before `grok` starts, with a `*GateError` that mat
 `ErrGateNotLoaded` and names its `GateReason` and a remedy: the hook missing, the
 hook disabled (a user who turned it off in `/hooks`), the hook calling another
 herrscher binary, or an inspect that failed, printed more than 8 MiB, or printed a
-listing the gate cannot read. Whatever keeps Grok from loading project hooks in the
-working directory, such as a managed policy or a folder it does not trust, leaves
-the hook out of the listing and reads as a missing hook. Any of them would
-otherwise let every tool call run unasked. The check costs one more `grok`
+listing the gate cannot read, or a policy that lets only managed hooks run. Grok
+1.0.92 still lists the project hook under that policy, without `disabled`, and
+skips it when a tool runs, so the gate reads the pin itself: a
+`permissions.enforced` entry whose `setting` is `nonManagedHooks`. A folder Grok
+does not trust leaves the hook out of the listing and reads as a missing hook.
+Any of them would otherwise let every tool call run unasked. The check costs one more `grok`
 process per gated turn, about 0.2 seconds.
 
 `--always-approve` keeps a headless run from refusing every tool call it cannot
