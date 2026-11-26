@@ -35,7 +35,7 @@ type readOutcome[Result any] struct {
 	err   error
 }
 
-func startTurn(ctx context.Context, argv []string, dir, prompt string, stderr io.Writer, setDeadline stdoutDeadline) (*turnProcess, error) {
+func startTurn(ctx context.Context, spec childSpec, prompt string, setDeadline stdoutDeadline) (*turnProcess, error) {
 	stdinReader, stdinWriter, err := os.Pipe()
 	if err != nil {
 		return nil, err
@@ -44,7 +44,7 @@ func startTurn(ctx context.Context, argv []string, dir, prompt string, stderr io
 	if err != nil {
 		return nil, errors.Join(err, stdinReader.Close(), stdinWriter.Close())
 	}
-	cmd := turnCommand(ctx, argv, dir, stderr)
+	cmd := turnCommand(ctx, spec)
 	cmd.Stdin = stdinReader
 	cmd.Stdout = stdoutWriter
 	startErr := cmd.Start()

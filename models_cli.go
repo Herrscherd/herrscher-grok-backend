@@ -57,10 +57,9 @@ type boundedOutput struct {
 
 func runBounded(ctx context.Context, argv []string, dir string, env []string) (*boundedOutput, error) {
 	output := &boundedOutput{}
-	cmd := turnCommand(ctx, argv, dir, &output.stderr)
+	cmd := turnCommand(ctx, childSpec{argv: argv, dir: dir, env: env, stderr: &output.stderr})
 	cmd.Stdout = &output.stdout
 	cmd.WaitDelay = boundedWaitDelay
-	cmd.Env = env
 	return output, cmd.Run()
 }
 

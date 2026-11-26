@@ -19,6 +19,7 @@ const (
 	settingEffort = "effort"
 	settingDir    = "dir"
 	settingResume = "resume"
+	settingEnv    = "env"
 	envCmd        = "GROK_CMD"
 )
 
@@ -34,6 +35,7 @@ func init() {
 				{Key: settingEffort, Env: "GROK_EFFORT", Help: "reasoning effort override: low, medium, high or xhigh"},
 				{Key: settingDir, Env: "GROK_DIR", Help: "working directory"},
 				{Key: settingResume, Help: "session id to resume, fed by the host at construction, never set by an operator"},
+				{Key: settingEnv, Help: "per-session env injected at spawn (K=V per line); host-supplied, never from the environment"},
 			},
 			Models:       Models(),
 			Capabilities: contracts.Capabilities{Gate: contracts.GrainTool},
@@ -51,6 +53,7 @@ func init() {
 				Effort:   effort,
 				Dir:      cfg.Get(settingDir),
 				ResumeID: cfg.Get(settingResume),
+				Env:      contracts.ParseEnvSetting(cfg.Get(settingEnv)),
 			})
 		},
 	})

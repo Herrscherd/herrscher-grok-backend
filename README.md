@@ -34,10 +34,14 @@ command older than that fetches it on first use.
 | `effort` | `GROK_EFFORT` | | `low`, `medium`, `high` or `xhigh`, passed as `--reasoning-effort`; any other value fails the factory with `ErrInvalidSetting` |
 | `dir` | `GROK_DIR` | | the working directory the CLI runs in |
 | `resume` | | | the session to resume, fed by the host at construction, never set by an operator |
+| `env` | | | the session environment, `K=V` per line, fed by the host at construction, never set by an operator |
 
-The child inherits the environment of the backend, which the host has already
-built for the session: `GROK_HOME` for an account profile, `XAI_API_KEY` and
-`GROK_XAI_API_BASE_URL` when the host's key proxy serves the `xai` provider.
+The child gets the environment of the backend with the `env` setting laid over
+it, a variable of the setting replacing the inherited one. That is where the
+host puts `GROK_HOME` for an account profile, and `XAI_API_KEY` with
+`GROK_XAI_API_BASE_URL` when its key proxy serves the `xai` provider. Grok signs
+in with a stored grok.com login before any key, so the key proxy serves a turn
+only when the home it runs in holds no login.
 
 ## A turn
 
@@ -58,6 +62,16 @@ the worktree into `~/.grok/trusted_folders.toml`. This is what lets the approval
 hook Herrscher writes into the worktree (`.grok/hooks/herrscher-approve.json`)
 run. It also means a Grok session trusts its worktree the way a Claude session
 does: hooks and MCP servers the repository itself ships under `.grok/` load too.
+
+Before every turn of a session that asks for approvals (`HERRSCHER_APPROVALS_MODE`
+set and not `bypass`, with `HERRSCHER_APPROVALS_BIN`), the backend runs
+`grok inspect --json` in the working directory with the turn's environment, and
+runs the turn only when that listing holds a project `pre_tool_use` hook, matching
+`*`, not disabled, whose command is the herrscher approval command of that
+binary. Otherwise the turn is refused with `ErrGateNotLoaded` before `grok`
+starts: a user who disabled the hook in `/hooks`, a policy that loads managed
+hooks only, or a working directory Grok does not count as a project would
+otherwise let every tool call run unasked.
 
 `--always-approve` keeps a headless run from refusing every tool call it cannot
 ask about. The approval policy is enforced by the `PreToolUse` hook, which runs
@@ -120,11 +134,11 @@ kept, given back as `--resume` on the next turn and exposed through
 `ResumeToken()`, which the host persists and feeds back through the `resume`
 setting.
 
-When a resumed turn ends on an `error` event that says the session was not found,
-before any event of the turn, the session is dropped, a `notice` event with
-`CodeResumeLost` is emitted, and the same prompt runs once more on a new session.
-Any other failure keeps the session, so a turn refused for its login does not
-lose the conversation.
+When a resumed turn ends on an `error` event whose message holds `no saved copy
+of session`, before any event of the turn, the session is dropped, a `notice`
+event with `CodeResumeLost` is emitted, and the same prompt runs once more on a
+new session. Any other failure keeps the session, so a turn refused for its
+login does not lose the conversation.
 
 ### Process
 
@@ -166,8 +180,10 @@ home on first run, about 200 MB per profile.
 Grok 4.7 Fast, and the hidden Grok 4.6 and Grok 4.5. Every entry is route
 `native`, so a host under the `gateway-only` policy drops the whole catalogue.
 The efforts are the ones `grok` accepts, `xhigh` excepted on Grok 4.5. The
-context window is 256K, the one Grok's model list gives. Prices are left at 0:
-`grok` reports the cost of each turn itself, in the `result` event.
+context window is 256K, the `context_window` Grok 1.0.92 caches for each of these
+models in `~/.grok/models_cache.json`. Prices are left at 0: `grok` reports the
+cost of a turn in the `result` event when its server stamps one, which it does for
+API key traffic and often not on a grok.com login. Without it the cost is 0.
 
 `Plugin.Discover` adds what `grok models` lists for a signed-in account, and
 nothing for an account that is not signed in.

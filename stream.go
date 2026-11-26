@@ -31,6 +31,7 @@ const (
 	backendKindResult   = "result"
 
 	stopEndTurn        = "end_turn"
+	resumeMissingText  = "no saved copy of session"
 	textBlockSeparator = "\n\n"
 	maxReplyBytes      = maxStreamLine
 	maxThoughtBytes    = 1 << 20
@@ -131,8 +132,7 @@ func (t turnResult) isResumeRefused() bool {
 	if t.Failure == nil || t.Failure.StopReason != "" || t.Forwarded {
 		return false
 	}
-	message := strings.ToLower(t.Failure.Message)
-	return strings.Contains(message, "session") && strings.Contains(message, "found")
+	return strings.Contains(strings.ToLower(t.Failure.Message), resumeMissingText)
 }
 
 type turnState struct {

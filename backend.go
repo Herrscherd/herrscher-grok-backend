@@ -24,6 +24,7 @@ type Config struct {
 	Dir      string
 	Verbose  bool
 	ResumeID string
+	Env      map[string]string
 }
 
 const (
@@ -38,11 +39,15 @@ const (
 // NewBackend builds a configured Grok Build backend. Config.Cmd is split on
 // spaces, and an empty Cmd runs grok. It does not start Grok.
 func NewBackend(_ context.Context, config Config) (contracts.Backend, error) {
+	gate, gated := approvalGateFrom(os.Getenv)
 	return &streamResponder{
+		gate:        gate,
+		gated:       gated,
 		base:        baseCommand(config.Cmd),
 		model:       config.Model,
 		effort:      config.Effort,
 		dir:         config.Dir,
+		env:         config.Env,
 		stderr:      diagnosticsOutput(config),
 		drain:       drainPipe,
 		setDeadline: setReadDeadline,
@@ -62,6 +67,9 @@ type streamResponder struct {
 	model       string
 	effort      string
 	dir         string
+	env         map[string]string
+	gate        approvalGate
+	gated       bool
 	stderr      io.Writer
 	drain       func(io.Reader) error
 	setDeadline stdoutDeadline
@@ -89,8 +97,18 @@ func (r *streamResponder) Respond(ctx context.Context, prompt contracts.Prompt, 
 func (r *streamResponder) runTurn(ctx context.Context, prompt contracts.Prompt, resume string, onEvent func(contracts.BackendEvent)) (turnResult, error) {
 	runCtx, stop := context.WithCancel(ctx)
 	defer stop()
-	argv := turnArgv(r.base, turnFlags{model: r.model, effort: r.effort, resume: resume})
-	proc, err := startTurn(runCtx, argv, r.dir, turnInput(prompt), r.stderr, r.setDeadline)
+	spec := childSpec{
+		argv:   turnArgv(r.base, turnFlags{model: r.model, effort: r.effort, resume: resume}),
+		dir:    r.dir,
+		env:    childEnv(contracts.MergeEnv(os.Environ(), r.env)),
+		stderr: r.stderr,
+	}
+	if r.gated {
+		if err := r.gate.check(runCtx, r.base, spec); err != nil {
+			return turnResult{}, err
+		}
+	}
+	proc, err := startTurn(runCtx, spec, turnInput(prompt), r.setDeadline)
 	if err != nil {
 		return turnResult{}, fmt.Errorf("grok start: %w", err)
 	}
@@ -173,17 +191,24 @@ func turnInput(p contracts.Prompt) string {
 	return withContext(p.Context, withAttachments(p.Content, p.Attachments))
 }
 
-func turnCommand(ctx context.Context, argv []string, dir string, stderr io.Writer) *exec.Cmd {
-	cmd := exec.CommandContext(ctx, argv[0], argv[1:]...)
+type childSpec struct {
+	argv   []string
+	dir    string
+	env    []string
+	stderr io.Writer
+}
+
+func turnCommand(ctx context.Context, spec childSpec) *exec.Cmd {
+	cmd := exec.CommandContext(ctx, spec.argv[0], spec.argv[1:]...)
 	configureChild(cmd)
-	cmd.Dir = dir
-	cmd.Stderr = stderr
-	cmd.Env = childEnv(os.Environ())
+	cmd.Dir = spec.dir
+	cmd.Stderr = spec.stderr
+	cmd.Env = spec.env
 	return cmd
 }
 
 func childEnv(parent []string) []string {
-	return append(slices.Clone(parent), envFolderTrust+"="+folderTrustOff)
+	return contracts.MergeEnv(parent, map[string]string{envFolderTrust: folderTrustOff})
 }
 
 func baseCommand(cmd string) []string {

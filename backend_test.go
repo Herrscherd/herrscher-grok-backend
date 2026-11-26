@@ -150,7 +150,8 @@ func TestRespondSendsThePromptOnStdinWithTheTurnFlags(t *testing.T) {
 cat > '`+record+`.stdin'
 env > '`+record+`.env'
 printf '{"type":"end","stopReason":"end_turn","sessionId":"next"}\n'`)
-	backend := newStubBackend(t, Config{Cmd: stub, Model: "grok-4.7", Effort: "xhigh", ResumeID: "earlier"})
+	t.Setenv("GROK_FOLDER_TRUST", "1")
+	backend := newStubBackend(t, Config{Cmd: stub, Model: "grok-4.7", Effort: "xhigh", ResumeID: "earlier", Env: map[string]string{"GROK_HOME": "/profile/home"}})
 	turn := respond(t, backend, "secret prompt")
 	if turn.err != nil {
 		t.Fatal(turn.err)
@@ -163,8 +164,12 @@ printf '{"type":"end","stopReason":"end_turn","sessionId":"next"}\n'`)
 	if stdin := readFile(t, record+".stdin"); stdin != "secret prompt" {
 		t.Fatalf("stdin = %q, want the prompt", stdin)
 	}
-	if !slices.Contains(readLines(t, record+".env"), "GROK_FOLDER_TRUST=0") {
-		t.Fatal("the child does not run with folder trust off, so the worktree's approval hook would not load")
+	env := readLines(t, record+".env")
+	if !slices.Contains(env, "GROK_FOLDER_TRUST=0") || slices.Contains(env, "GROK_FOLDER_TRUST=1") {
+		t.Fatal("the child does not run with folder trust off alone, so the worktree's approval hook may not load")
+	}
+	if !slices.Contains(env, "GROK_HOME=/profile/home") {
+		t.Fatal("the session env of the host does not reach the child")
 	}
 	if token := resumeToken(t, backend); token != "next" {
 		t.Fatalf("resume token = %q, want next", token)

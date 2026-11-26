@@ -9,7 +9,10 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"time"
 )
+
+const treeKillLimit = 10 * time.Second
 
 func configureChild(cmd *exec.Cmd) {
 	cmd.Cancel = func() error {
@@ -18,7 +21,9 @@ func configureChild(cmd *exec.Cmd) {
 }
 
 func killGroup(process *os.Process) error {
-	treeErr := exec.CommandContext(context.Background(), "taskkill", "/T", "/F", "/PID", strconv.Itoa(process.Pid)).Run()
+	bounded, cancel := context.WithTimeout(context.Background(), treeKillLimit)
+	defer cancel()
+	treeErr := exec.CommandContext(bounded, "taskkill", "/T", "/F", "/PID", strconv.Itoa(process.Pid)).Run()
 	if treeErr == nil {
 		return nil
 	}
